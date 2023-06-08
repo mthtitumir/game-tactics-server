@@ -27,9 +27,23 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
         const usersCollection = client.db('gameTacticsDB').collection('users');
-
+        // jwt token post method 
+        app.post('/jwt', (req, res)=>{
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '7d'});
+            res.send({token});
+        })
         // users api 
-        
+        app.post('/users', async(req, res)=>{
+            const user = req.body;
+            const query = {email: user.email};
+            const oldUser = await usersCollection.findOne(query);
+            if (oldUser){
+                return res.send({message: 'user already exists here!'})
+            }
+            const result = await usersCollection.insertOne(user);
+            res.send(result);
+        })
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
