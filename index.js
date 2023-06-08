@@ -48,6 +48,24 @@ async function run() {
             const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '7d'});
             res.send({token});
         })
+        const verifyAdmin = async(req, res, next) =>{
+            const email = req.decoded.email;
+            const query = {email: email};
+            const user = await usersCollection.findOne(query);
+            if(user?.role !== 'admin'){
+                return res.status(403).send({error: true, message: 'forbidden access!'})
+            }
+            next();
+        }
+        const verifyInstructor = async(req, res, next) =>{
+            const email = req.decoded.email;
+            const query = {email: email};
+            const user = await usersCollection.findOne(query);
+            if(user?.role !== 'instructor'){
+                return res.status(403).send({error: true, message: 'forbidden access!'})
+            }
+            next();
+        }
         // users api 
         app.post('/users', async(req, res)=>{
             const user = req.body;
@@ -57,6 +75,10 @@ async function run() {
                 return res.send({message: 'user already exists here!'})
             }
             const result = await usersCollection.insertOne(user);
+            res.send(result);
+        })
+        app.get('/users', verifyJWT, async(req, res)=>{
+            const result = await usersCollection.find().toArray();
             res.send(result);
         })
         // Send a ping to confirm a successful connection
