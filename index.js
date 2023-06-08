@@ -8,8 +8,23 @@ const port = process.env.PORT || 5002;
 //middleware
 app.use(cors());
 app.use(express.json());
+// verify jwt 
+const verifyJWT = (req, res, next) => {
+    const authorization = req.headers.authorization;
+    if(!authorization){
+        return res.status(401).send({error: true, message: 'unauthorized access'});
+    }
+    // split the token from authorization
+    const token = authorization.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded)=>{
+        if(error){
+            return res.status(401).send({error: true, message: 'unauthorized access!'})
+        }
+        req.decoded = decoded;
+        next();
+    })
+}
 //mongodb codeblock
-
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const uri = `mongodb+srv://${process.env.USER_NAME}:${process.env.USER_PASS}@cluster0.xx7c7ta.mongodb.net/?retryWrites=true&w=majority`;
 
