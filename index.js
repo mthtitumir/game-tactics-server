@@ -92,6 +92,16 @@ async function run() {
             const result = { admin: user?.role === 'admin' };
             res.send(result);
         })
+        app.get('/users/instructor/:email', verifyJWT, async (req, res) => {
+            const email = req.params.email;
+            if (req.decoded.email !== email) {
+                res.send({ instructor: false })
+            }
+            const query = { email: email };
+            const user = await usersCollection.findOne(query);
+            const result = { instructor: user?.role === 'instructor' };
+            res.send(result);
+        })
 
         app.patch('/users/admin/:id', async(req, res)=>{
             const id = req.params.id;
@@ -102,6 +112,17 @@ async function run() {
                 },
             };
             const result = await usersCollection.updateOne(filter, updateRole);
+            res.send(result);
+        })
+        app.patch('/users/instructor/:email', async(req, res)=>{
+            const email = req.params.email;
+            const query = {email: email};
+            const updateRole = {
+                $set: {
+                    role: 'instructor'
+                },
+            };
+            const result = await usersCollection.updateOne(query, updateRole);
             res.send(result);
         })
 
