@@ -104,9 +104,9 @@ async function run() {
             res.send(result);
         })
 
-        app.patch('/users/admin/:id', async(req, res)=>{
+        app.patch('/users/admin/:id', async (req, res) => {
             const id = req.params.id;
-            const filter = {_id: new ObjectId(id)};
+            const filter = { _id: new ObjectId(id) };
             const updateRole = {
                 $set: {
                     role: 'admin'
@@ -115,9 +115,9 @@ async function run() {
             const result = await usersCollection.updateOne(filter, updateRole);
             res.send(result);
         })
-        app.patch('/users/instructor/:email', async(req, res)=>{
+        app.patch('/users/instructor/:email', async (req, res) => {
             const email = req.params.email;
-            const query = {email: email};
+            const query = { email: email };
             const updateRole = {
                 $set: {
                     role: 'instructor'
@@ -134,27 +134,40 @@ async function run() {
         })
         app.post('/courses', async (req, res) => {
             const course = req.body;
-            console.log(course);
+            // console.log(course);
             const result = await coursesCollection.insertOne(course);
             res.send(result);
         })
         // cart api
-        app.get('/carts', verifyJWT, async(req, res)=>{
+        app.get('/carts', verifyJWT, async (req, res) => {
             const email = req.query.email;
-            if(!email){
+            if (!email) {
                 res.send([]);
             }
             const decodedEmail = req.decoded.email;
-            if (email !== decodedEmail){
+            if (email !== decodedEmail) {
                 return res.status(403).send({ error: true, message: 'forbidden access' })
             }
-            const query = {email: email};
+            const query = { email: email };
             const result = await cartCollection.find(query).toArray();
+            // console.log(result);
             res.send(result);
         })
-        app.post('/carts', async(req, res)=>{
+        app.post('/carts', async (req, res) => {
             const item = req.body;
+            const query = { classId: item.classId };
+            const alreadyInCart = await cartCollection.findOne(query);
+            if (alreadyInCart) {
+                return res.send({ message: 'Class already selected!' })
+            }
             const result = await cartCollection.insertOne(item);
+            // console.log(result);
+            res.send(result);
+        })
+        app.delete('/carts/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await cartCollection.deleteOne(query);
             res.send(result);
         })
 
