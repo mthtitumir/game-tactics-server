@@ -81,7 +81,13 @@ async function run() {
             const result = await usersCollection.insertOne(user);
             res.send(result);
         })
-        app.get('/users', verifyJWT, async (req, res) => {
+        app.get('/users/instructors', async(req, res)=>{
+            const users = await usersCollection.find().toArray();
+            // console.log(users);
+            const instructors = users?.filter(instructor => instructor.role === 'instructor');
+            res.send(instructors);
+        })
+        app.get('/users', verifyJWT, verifyAdmin, async (req, res) => {
             const result = await usersCollection.find().toArray();
             res.send(result);
         })
@@ -122,7 +128,8 @@ async function run() {
             const query = { email: email };
             const updateRole = {
                 $set: {
-                    role: 'instructor'
+                    role: 'instructor',
+                    enrolledCourses: 0,
                 },
             };
             const result = await usersCollection.updateOne(query, updateRole);
@@ -155,11 +162,15 @@ async function run() {
             // console.log(result);
             res.send(result);
         })
-        app.post('/carts', async (req, res) => {
+        app.post('/carts', verifyJWT, async (req, res) => {
             const item = req.body;
-            const query = { classId: item.classId };
-            const alreadyInCart = await cartCollection.findOne(query);
-            if (alreadyInCart) {
+            const decodedEmail = { email: req.decoded.email };
+            const singleCart = await cartCollection.find(decodedEmail).toArray();
+            console.log(singleCart);
+            const already = singleCart.find(cartItem => cartItem.classId === item.classId );
+            // const query = { classId: item.classId };
+            // const alreadyInCart = await cartCollection.findOne(query);
+            if (already) {
                 return res.send({ message: 'Class already selected!' })
             }
             const result = await cartCollection.insertOne(item);
@@ -173,8 +184,8 @@ async function run() {
             res.send(result);
         })
         // create payment intent
-        app.post('/create-payment-intent', verifyJWT, async(req, res)=>{
-            const {price} = req.body;
+        app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+            const { price } = req.body;
             // console.log(price);
             const amount = parseInt(price * 100);
             // console.log(amount);
@@ -189,9 +200,9 @@ async function run() {
                 clientSecret: paymentIntent.client_secret
             })
         })
-        app.post('/payments', verifyJWT, async (req, res)=>{
+        app.post('/payments', verifyJWT, async (req, res) => {
             const payment = req.body;
-            const query = {_id: new ObjectId(payment._id)};
+            const query = { _id: new ObjectId(payment._id) };
             console.log(payment);
             const updateStatus = {
                 $set: {
@@ -200,7 +211,7 @@ async function run() {
             }
             const insertResult = await paymentCollection.insertOne(payment);
             const updateResult = await cartCollection.updateOne(query, updateStatus);
-            res.send({insertResult, updateResult});
+            res.send({ insertResult, updateResult });
         })
 
         // Send a ping to confirm a successful connection
