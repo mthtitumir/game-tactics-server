@@ -45,7 +45,8 @@ async function run() {
         const usersCollection = client.db('gameTacticsDB').collection('users');
         const coursesCollection = client.db('gameTacticsDB').collection('courses');
         const cartCollection = client.db('gameTacticsDB').collection('carts');
-        // jwt token post method 
+        const paymentCollection = client.db('gameTacticsDB').collection('payments');
+        // jwt token and verify
         app.post('/jwt', (req, res) => {
             const user = req.body;
             const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '7d' });
@@ -174,16 +175,32 @@ async function run() {
         // create payment intent
         app.post('/create-payment-intent', verifyJWT, async(req, res)=>{
             const {price} = req.body;
-            const amount = price*100;
+            // console.log(price);
+            const amount = parseInt(price * 100);
+            // console.log(amount);
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amount,
                 currency: 'usd',
                 payment_method_types: ['card'],
 
             });
+            // console.log(paymentIntent.amount);
             res.send({
                 clientSecret: paymentIntent.client_secret
             })
+        })
+        app.post('/payments', verifyJWT, async (req, res)=>{
+            const payment = req.body;
+            const query = {_id: new ObjectId(payment._id)};
+            console.log(payment);
+            const updateStatus = {
+                $set: {
+                    paymentStatus: 'paid'
+                }
+            }
+            const insertResult = await paymentCollection.insertOne(payment);
+            const updateResult = await cartCollection.updateOne(query, updateStatus);
+            res.send({insertResult, updateResult});
         })
 
         // Send a ping to confirm a successful connection
